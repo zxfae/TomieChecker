@@ -24,7 +24,7 @@ async fn normalize_version(version: &str) -> String {
 
 async fn get_crate_versions(name: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let url = format!("https://crates.io/api/v1/crates/{}", name);
-    println!("Requête API pour {}: {}", name, url);
+    println!("Request to API for {}: {}", name, url);
 
     let client = reqwest::Client::new();
     let response = client
@@ -35,7 +35,7 @@ async fn get_crate_versions(name: &str) -> Result<Vec<String>, Box<dyn Error>> {
 
     if !response.status().is_success() {
         println!(
-            "Erreur HTTP {} pour {}: {}",
+            "HTTP error {} for {}: {}",
             response.status(),
             name,
             response
@@ -51,7 +51,7 @@ async fn get_crate_versions(name: &str) -> Result<Vec<String>, Box<dyn Error>> {
     let versions = json["versions"]
         .as_array()
         .ok_or_else(|| {
-            println!("Pas de versions trouvées pour {}", name);
+            println!("No versions found for {}", name);
             "No versions found"
         })?
         .iter()
@@ -70,22 +70,21 @@ fn parse_dependency_version(dep: &Dependency) -> Option<String> {
 
 async fn analyze_dependency(name: String, current_version: String) -> AnalysisResult {
     println!(
-        "Analyse de la dépendance {} version {}",
+        "Dependency analysis for: {} version {} \n",
         name, current_version
     );
     let versions = get_crate_versions(&name).await?;
 
     if versions.is_empty() {
-        println!("Aucune version trouvée pour {}", name);
+        println!("No version found {}", name);
         return Ok(None);
     }
 
     let latest = versions.first().unwrap();
     let normalized_current = normalize_version(&current_version).await;
     let normalized_latest = normalize_version(latest).await;
-
     println!(
-        "Version normalisée pour {} : {} -> {}",
+        "Normalized version for {} : {} -> {}",
         name, normalized_current, normalized_latest
     );
 
@@ -100,7 +99,7 @@ async fn analyze_dependency(name: String, current_version: String) -> AnalysisRe
             is_outdated: latest > current,
         })),
         (Err(e), _) | (_, Err(e)) => {
-            println!("Erreur de parsing de version pour {}: {}", name, e);
+            println!("Parsing error for version {}: {}", name, e);
             Ok(None)
         }
     }
@@ -110,17 +109,17 @@ async fn analyze_dependencies(
     cargo_toml_path: &PathBuf,
 ) -> Result<Vec<DependencyAnalysis>, Box<dyn Error>> {
     let content = fs::read_to_string(cargo_toml_path)?;
-    println!("Contenu du fichier Cargo.toml lu avec succès");
+    println!("Cargo.toml file content read successfully");
 
     let cargo_toml: Tomie = toml::from_str(&content)?;
-    println!("Parsing du fichier Cargo.toml réussi");
+    println!("Cargo.toml file parsing successful");
 
     let dependencies = match cargo_toml.dependencies {
         Some(deps) => deps,
         None => return Ok(vec![]),
     };
 
-    println!("\nDépendances trouvées dans Cargo.toml:");
+    println!("\nDependencies found in Cargo.toml:");
     for (name, dep) in dependencies.iter() {
         println!("- {}: {:?}", name, dep);
     }
@@ -162,7 +161,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("------------------------");
 
     if analyses.is_empty() {
-        println!("Aucune dépendance analysée avec succès.");
+        println!("No dependencies analyzed successfully.");
         return Ok(());
     }
 
